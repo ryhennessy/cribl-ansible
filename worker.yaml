@@ -1,7 +1,6 @@
 ---
 - name: Configure and Install the Leader Node
   hosts: worker
-  remote_user: ec2-user
   become: yes
 
   tasks:
