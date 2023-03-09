@@ -1,0 +1,44 @@
+---
+- name: Configure and Install the Leader Node
+  hosts: leader
+  remote_user: ec2-user
+  become: yes
+
+  tasks:
+    - name: Ensure the server is up to date
+      ansible.builtin.yum:
+        state: latest
+        name: '*'
+    - name: Ensure that git is installed on the leader node
+      ansible.builtin.yum:
+        name: git
+        state: latest
+    - name: Install the lastest version of Cribl
+      ansible.builtin.unarchive:
+        src: "{{ lookup('ansible.builtin.url', 'https://cdn.cribl.io/dl/latest-arm64') }}"
+        dest: /opt
+        remote_src: yes
+        exclude: ['._*']
+    - name: Create the Cribl User
+      ansible.builtin.user:
+        name: cribl
+        home: /opt/cribl
+    - name: Set Node to be a Leader Node.
+      ansible.builtin.command:
+        cmd: /opt/cribl/bin/cribl mode-master
+    - name: Set ownership of the cribl environment to the cribl user
+      ansible.builtin.file:
+        path: /opt/cribl
+        owner: cribl
+        group: cribl
+        recurse: yes
+        state: directory
+    - name: Install the systemd service
+      ansible.builtin.command:
+        cmd: /opt/cribl/bin/cribl boot-start enable -u cribl
+    - name: Start the Cribl Service
+      ansible.builtin.service:
+        name: cribl
+        state: started
+        enabled: yes
+...
