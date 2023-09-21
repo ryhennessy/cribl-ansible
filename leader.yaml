@@ -14,7 +14,7 @@
         state: latest
     - name: Install the lastest version of Cribl
       ansible.builtin.unarchive:
-        src: "{{ lookup('ansible.builtin.url', 'https://cdn.cribl.io/dl/latest-arm64') }}"
+        src: "{{ lookup('ansible.builtin.url', 'https://cdn.cribl.io/dl/latest-x64') }}"
         dest: /opt
         remote_src: yes
         exclude: ['._*']
