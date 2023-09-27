@@ -8,12 +8,24 @@
       ansible.builtin.yum:
         state: latest
         name: '*'
-    - name: Install the lastest version of Cribl
+    - name: Validate the architecture of the Linux Box
+      ansible.builtin.command:
+        command: uname -a
+      register: cribl_arch 
+    - name: Install the lastest version of Cribl arm64
+      ansible.builtin.unarchive:
+        src: "{{ lookup('ansible.builtin.url', 'https://cdn.cribl.io/dl/latest-arm64') }}"
+        dest: /opt
+        remote_src: yes
+        exclude: ['._*']
+      when: '"aarch64" in cribl_arch.stdout'
+    - name: Install the lastest version of Cribl x86_64
       ansible.builtin.unarchive:
         src: "{{ lookup('ansible.builtin.url', 'https://cdn.cribl.io/dl/latest-x64') }}"
         dest: /opt
         remote_src: yes
         exclude: ['._*']
+      when: '"x86_64" in cribl_arch.stdout'
     - name: Create the Cribl User
       ansible.builtin.user:
         name: cribl
@@ -25,9 +37,14 @@
         group: cribl
         recurse: yes
         state: directory
+    - name: Test to see if the systemd service has already been configured.
+      ansible.builtin.stat:
+        path: /etc/systemd/system/cribl.service
+      register: cribl_systemd
     - name: Install the systemd service
       ansible.builtin.command:
         cmd: /opt/cribl/bin/cribl boot-start enable -u cribl
+      when: not cribl_systemd.stat.exists
     - name: Start the Cribl Worker Node
       ansible.builtin.command:
         cmd: /opt/cribl/bin/cribl start
