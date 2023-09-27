@@ -10,7 +10,7 @@
         name: '*'
     - name: Validate the architecture of the Linux Box
       ansible.builtin.command:
-        command: uname -a
+        cmd: uname -a
       register: cribl_arch 
     - name: Install the lastest version of Cribl arm64
       ansible.builtin.unarchive:
@@ -30,6 +30,9 @@
       ansible.builtin.user:
         name: cribl
         home: /opt/cribl
+    - name: Configure the the node as a Cribl Worker.
+      ansible.builtin.command:
+        cmd: '/opt/cribl/bin/cribl mode-worker -H {{leaderhost}} -p {{leaderport}} -u {{leaderauth}} -g {{workergroup}}'
     - name: Set ownership of the cribl environment to the cribl user
       ansible.builtin.file:
         path: /opt/cribl
@@ -45,19 +48,9 @@
       ansible.builtin.command:
         cmd: /opt/cribl/bin/cribl boot-start enable -u cribl
       when: not cribl_systemd.stat.exists
-    - name: Start the Cribl Worker Node
-      ansible.builtin.command:
-        cmd: /opt/cribl/bin/cribl start
-      environment:
-        CRIBL_DIST_MASTER_URL: "{{ leader_connection }}"
-      become_user: cribl
-    - name: Stop the Cribl Worker Node
-      ansible.builtin.command:
-        cmd: /opt/cribl/bin/cribl stop
-      become_user: cribl
     - name: Enable the Cribl service on reboot
       ansible.builtin.service:
         name: cribl
-        state: started
+        state: restarted
         enabled: yes
 ...
