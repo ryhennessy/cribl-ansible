@@ -71,7 +71,7 @@
         mode: "0755"
         content: |
           [Service]
-          AmbientCapabilities={{ criblcaps }}
+          AmbientCapabilities=CAP_DAC_READ_SEARCH CAP_SYS_PTRACE
     - name: Enable the Cribl service on reboot
       ansible.builtin.service:
         name: cribl
