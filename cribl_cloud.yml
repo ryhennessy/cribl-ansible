@@ -1,0 +1,6 @@
+leaderhost: "<cribltenanturl>.cribl.cloud"
+leaderport: "4200"
+leaderauth: "$$$$$$$$$$$$$"
+workergroup: "SomeWorkerGroup"
+leadertls: true
+criblcaps: "CAP_NET_BIND_SERVICE"

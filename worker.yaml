@@ -1,38 +1,46 @@
 ---
-- name: Configure and Install the Leader Node
-  hosts: worker
+- name: Configure and Install the Worker Node
+  hosts: tag_Name_cribl
+  user: ec2-user
   become: yes
+  vars_files:
+    - cribl_cloud.yml
 
   tasks:
     - name: Ensure the server is up to date
       ansible.builtin.yum:
         state: latest
-        name: '*'
+        name: "*"
     - name: Validate the architecture of the Linux Box
       ansible.builtin.command:
         cmd: uname -a
-      register: cribl_arch 
+      register: cribl_arch
     - name: Install the lastest version of Cribl arm64
       ansible.builtin.unarchive:
         src: "{{ lookup('ansible.builtin.url', 'https://cdn.cribl.io/dl/latest-arm64') }}"
         dest: /opt
         remote_src: yes
-        exclude: ['._*']
+        exclude: ["._*"]
       when: '"aarch64" in cribl_arch.stdout'
     - name: Install the lastest version of Cribl x86_64
       ansible.builtin.unarchive:
         src: "{{ lookup('ansible.builtin.url', 'https://cdn.cribl.io/dl/latest-x64') }}"
         dest: /opt
         remote_src: yes
-        exclude: ['._*']
+        exclude: ["._*"]
       when: '"x86_64" in cribl_arch.stdout'
     - name: Create the Cribl User
       ansible.builtin.user:
         name: cribl
         home: /opt/cribl
-    - name: Configure the the node as a Cribl Worker.
+    - name: Configure the the node as a Cribl Worker no Leader TLS.
       ansible.builtin.command:
-        cmd: '/opt/cribl/bin/cribl mode-worker -H {{leaderhost}} -p {{leaderport}} -u {{leaderauth}} -g {{workergroup}}'
+        cmd: "/opt/cribl/bin/cribl mode-worker -H {{leaderhost}} -p {{leaderport}} -u {{leaderauth}} -g {{workergroup}}"
+      when: leadertls is undefined
+    - name: Configure the the node as a Cribl Worker with Leader TLS.
+      ansible.builtin.command:
+        cmd: "/opt/cribl/bin/cribl mode-worker -H {{leaderhost}} -p {{leaderport}} -u {{leaderauth}} -g {{workergroup}} -S true"
+      when: leadertls is defined
     - name: Set ownership of the cribl environment to the cribl user
       ansible.builtin.file:
         path: /opt/cribl
@@ -48,9 +56,25 @@
       ansible.builtin.command:
         cmd: /opt/cribl/bin/cribl boot-start enable -u cribl
       when: not cribl_systemd.stat.exists
+    - name: Create the systemd drop-in directory for added capablities
+      ansible.builtin.file:
+        path: /etc/systemd/system/cribl.service.d
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+    - name: Create the drop-in file for the capablities
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/cribl.service.d/10-capadd.conf
+        owner: root
+        group: root
+        mode: "0755"
+        content: |
+          [Service]
+          AmbientCapabilities={{ criblcaps }}
     - name: Enable the Cribl service on reboot
       ansible.builtin.service:
         name: cribl
+        daemon_reload: true
         state: restarted
         enabled: yes
-...

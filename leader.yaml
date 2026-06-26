@@ -1,13 +1,14 @@
 ---
 - name: Configure and Install the Leader Node
   hosts: leader
+  user: ec2-user
   become: yes
 
   tasks:
     - name: Ensure the server is up to date
       ansible.builtin.yum:
         state: latest
-        name: '*'
+        name: "*"
     - name: Ensure that git is installed on the leader node
       ansible.builtin.yum:
         name: git
@@ -21,14 +22,14 @@
         src: "{{ lookup('ansible.builtin.url', 'https://cdn.cribl.io/dl/latest-arm64') }}"
         dest: /opt
         remote_src: yes
-        exclude: ['._*']
+        exclude: ["._*"]
       when: '"aarch64" in cribl_arch.stdout'
     - name: Install the lastest version of Cribl x86_64
       ansible.builtin.unarchive:
         src: "{{ lookup('ansible.builtin.url', 'https://cdn.cribl.io/dl/latest-x64') }}"
         dest: /opt
         remote_src: yes
-        exclude: ['._*']
+        exclude: ["._*"]
       when: '"x86_64" in cribl_arch.stdout'
     - name: Create the Cribl User
       ansible.builtin.user:
@@ -62,4 +63,3 @@
         name: cribl
         state: started
         enabled: yes
-...
